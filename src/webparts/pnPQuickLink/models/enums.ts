@@ -5,7 +5,7 @@ export enum LayoutType {
 export enum TileSize {
   Small = 22,
   Medium = 30,
-  Large = 36,
+  Large = 46,
   XLarge = 60,
   FillSpace = 60.1,
 }

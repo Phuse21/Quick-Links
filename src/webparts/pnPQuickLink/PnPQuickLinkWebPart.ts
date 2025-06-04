@@ -15,6 +15,10 @@ import {
 import { BaseClientSideWebPart } from "@microsoft/sp-webpart-base";
 
 import { PropertyFieldIconPicker } from "@pnp/spfx-property-controls/lib/PropertyFieldIconPicker";
+import {
+  PropertyFieldFilePicker,
+  IFilePickerResult,
+} from "@pnp/spfx-property-controls/lib/PropertyFieldFilePicker";
 import { ILink } from "./models/ILink";
 import { LayoutType, TileSize, LinkAlignment } from "./models/enums"; // Added LinkAlignment
 import { IPnPQuickLinksProps } from "./components/IPnPQuickLinkProps";
@@ -127,6 +131,127 @@ export default class PnPQuickLinksWebPart extends BaseClientSideWebPart<IPnPQuic
                     label: "Icon",
                     buttonLabel: "Choose",
                     currentIcon: this.properties.links[index].IconName,
+                  }),
+                  PropertyFieldFilePicker(`links[${index}].ImageUrlPicker`, {
+                    context: this.context as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+                    filePickerResult: {
+                      fileName: "",
+                      fileAbsoluteUrl: "",
+                    } as IFilePickerResult,
+                    onPropertyChange:
+                      this.onPropertyPaneFieldChanged.bind(this),
+                    properties: this.properties,
+                    onSave: (filePickerResult: IFilePickerResult) => {
+                      console.log("File Picker Result:", filePickerResult);
+                      if (
+                        filePickerResult &&
+                        typeof filePickerResult.downloadFileContent ===
+                          "function"
+                      ) {
+                        filePickerResult
+                          .downloadFileContent()
+                          .then((fileObject: File) => {
+                            // Expect a File object
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              if (
+                                event.target &&
+                                typeof event.target.result === "string"
+                              ) {
+                                this.properties.links[index].ImageUrl =
+                                  event.target.result;
+                                // Manually trigger a property pane refresh and re-render
+                                this.onPropertyPaneFieldChanged(
+                                  `links[${index}].ImageUrl`,
+                                  null,
+                                  this.properties.links[index].ImageUrl
+                                );
+                                this.context.propertyPane.refresh();
+                                this.render();
+                              } else {
+                                console.error(
+                                  "FileReader did not return a string result."
+                                );
+                                this.properties.links[index].ImageUrl = ""; // Clear on error
+                                this.onPropertyPaneFieldChanged(
+                                  `links[${index}].ImageUrl`,
+                                  null,
+                                  ""
+                                );
+                                this.context.propertyPane.refresh();
+                                this.render();
+                              }
+                            };
+                            reader.onerror = (error) => {
+                              console.error("FileReader error:", error);
+                              this.properties.links[index].ImageUrl = ""; // Clear on error
+                              this.onPropertyPaneFieldChanged(
+                                `links[${index}].ImageUrl`,
+                                null,
+                                ""
+                              );
+                              this.context.propertyPane.refresh();
+                              this.render();
+                            };
+                            reader.readAsDataURL(fileObject); // Read the File object as Data URL
+                          })
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          .catch((error: any) => {
+                            console.error(
+                              "Error calling downloadFileContent:",
+                              error
+                            );
+                            this.properties.links[index].ImageUrl = ""; // Clear on error
+                            this.onPropertyPaneFieldChanged(
+                              `links[${index}].ImageUrl`,
+                              null,
+                              ""
+                            );
+                            this.context.propertyPane.refresh();
+                            this.render();
+                          });
+                      } else {
+                        // If no file is picked or downloadFileContent is not available, clear the ImageUrl
+                        this.properties.links[index].ImageUrl = "";
+                        this.onPropertyPaneFieldChanged(
+                          `links[${index}].ImageUrl`,
+                          null,
+                          ""
+                        );
+                        this.context.propertyPane.refresh();
+                        this.render();
+                      }
+                    },
+                    onChanged: (filePickerResult: IFilePickerResult) => {
+                      // This onChanged can be used for immediate feedback if necessary
+                      // For now, we rely on onSave
+                    },
+                    key: `links[${index}].ImageUrlPicker`,
+                    buttonLabel: "Select Image",
+                    label: "Image from PC",
+                    accepts: [
+                      ".gif",
+                      ".jpg",
+                      ".jpeg",
+                      ".bmp",
+                      ".dib",
+                      ".tif",
+                      ".tiff",
+                      ".ico",
+                      ".png",
+                      ".jxr",
+                      ".svg",
+                    ],
+                    includePageLibraries: false, // This seemed to be accepted
+                    // Rely on default behavior for SharePoint and Stock Images for now.
+                    // If needed, we can use hideTabs later.
+                    // Example: hideTabs: ['OneDrive', 'WebSearch'] to show others.
+                  }),
+                  PropertyPaneTextField(`links[${index}].ImageUrl`, {
+                    label: "Image Url (or paste URL here)",
+                    description:
+                      "Use 'Select Image' above to upload (image will be stored as data URL), or paste an external URL directly.",
+                    value: this.properties.links[index].ImageUrl,
                   }),
                   PropertyPaneChoiceGroup(`links[${index}].Target`, {
                     label: "Open",

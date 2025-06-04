@@ -85,11 +85,23 @@ export const TilesQuickLinks: React.FunctionComponent<ITilesQuickLinksProps> = (
       }
       onRenderText={(props) => {
         return (
-          <Stack styles={{ root: { gap: 10 } }}>
-            <Icon
-              iconName={link.IconName}
-              styles={{ root: { fontSize: size } }}
-            />
+          <Stack styles={{ root: { gap: 10, alignItems: "center" } }}>
+            {link.ImageUrl ? (
+              <img
+                src={link.ImageUrl}
+                alt={link.Title}
+                style={{
+                  height: size * 1.2,
+                  width: size * 1.2,
+                  objectFit: "contain", // Ensures the image fits well
+                }}
+              />
+            ) : (
+              <Icon
+                iconName={link.IconName}
+                styles={{ root: { fontSize: size } }}
+              />
+            )}
             {!hideText && size <= TileSize.Large && props && props.text}
           </Stack>
         );
